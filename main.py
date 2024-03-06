@@ -23,6 +23,7 @@ class Categoria(Base, DatasMixin):
     id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nome = Column(String(256), nullable=False)
 
+    #propriedade de navegação
     lista_de_produtos = relationship("Produto", back_populates="categoria",
                                      cascade="all, delete-orphan", lazy="selectin")
 
@@ -40,26 +41,44 @@ class Produto(Base):
     ativo = Column(Boolean, default=True)
     categoria_id = Column(Uuid(as_uuid=True), ForeignKey("tbl_categorias.id"))
 
+    #propriedade de navegação
     categoria = relationship("Categoria", back_populates="lista_de_produtos")
 
-cat = Categoria()
-cat.nome = "Bebidas"
+def seed_database():
 
-prod = Produto()
-prod.nome = ("Coca cola zero, 2L ")
-prod.ativo = True
-prod.preco = 9.50
-prod.estoque = 100
-prod.categoria = cat
+    #iterar sobre as categorias e adicionar os produtos
+    with Session(motor) as sessao:
+        registro = sessao.execute(select(Categoria).limit(1)).scalar_one_or_none()
+        if registro:
+            return
+        from seed import seed_data
+        for categoria in seed_data:
+            cat = Categoria()
+            print(f"Semeando a categoria {categoria['categoria']}...")
+            cat.nome = categoria["categoria"]
+            for produto in categoria["produtos"]:
+                p = Produto()
+                p.nome = produto["preco"]
+                p.preco = produto["preco"]
+                p.estoque = 0
+                p.ativo = True
+                p.categoria = cat
+                sessao.add(p)
+            sessao.commit()
 
-with Session(motor) as sessao:
-     sessao.add(prod)
-     sessao.commit()
+def incluir_categoria():
+    print("Incluir categoria")
 
-with Session(motor) as sessao:
-    categoria = sessao.execute(select(Categoria).where(Categoria.nome == "Bebidas")).scalars()
-    for categoria in categoria:
-        print(f" A categoria {categoria.nome} tem {len(categoria.lista_de_produtos)} produtos")
+
+if __name__ == "__main__":
+    seed_database()
+
+
+
+
+
+
+
 
 
 
